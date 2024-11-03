@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Image, } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Image, Vibration, Platform } from 'react-native';
 import CategorySelection from './CategorySelection';
 import { getUsername } from './Login';
 
@@ -26,7 +26,8 @@ const Play = ({ navigation }) => {
   const timerRef = useRef(null);
   const totalScoreRef = useRef(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
-  const [finalSummary, setFinalSummary] = useState(null)
+  const [finalSummary, setFinalSummary] = useState(null);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const username = getUsername();
 
 
@@ -50,7 +51,7 @@ const Play = ({ navigation }) => {
 
   const fetchUserPoints = async () => {
     try {
-      const response = await fetch(API_URL_userPoints);
+      const response = await fetch(`get-points`);
       if (!response.ok) {
         throw new Error('Error fetching user points');
       }
@@ -116,6 +117,19 @@ const Play = ({ navigation }) => {
     }
   }, [selectedCategory, currentQuestion, usedQuestions, getRandomQuestion]);
 
+  const loadVibrationSettings = async () => {
+    try {
+      const storedVibrationEnabled = JSON.parse(await AsyncStorage.getItem('vibrationEnabled'));
+      setVibrationEnabled(storedVibrationEnabled ?? true);
+    } catch (error) {
+      console.error('Error loading vibration settings:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadVibrationSettings();
+  }, []);
+
   const handleAnswer = useCallback((option) => {
   if (timerRef.current) {
     clearInterval(timerRef.current);
@@ -138,6 +152,9 @@ const Play = ({ navigation }) => {
     updatedProgress[questionCount] = false;
     setFeedbackMessage(`Respuesta correcta: ${currentQuestion?.answer}`);
     pointsForThisQuestion = -15;
+    if (vibrationEnabled) {
+        Vibration.vibrate(50);
+    }
   }
 
   // Sumar los puntos de pregunta
@@ -210,7 +227,7 @@ const Play = ({ navigation }) => {
       const finalPoints = Math.max(newPoints, 0);
       console.log('Puntos totales tras partida:', finalPoints);
 
-      await fetch(API_URL_updatePoints, {
+      await fetch(`update-points`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,6 +302,7 @@ const Play = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: Platform.OS === 'android' ? 35 : 0,
   },
   scrollView: {
     flexGrow: 1,

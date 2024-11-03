@@ -2,11 +2,12 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setSoundEnabled } from './SoundManager';
+import { setVibrationEnabled } from './VibrationManager';
 import { AuthContext } from '../Navigation';
 
 const Settings = () => {
   const [soundEnabled, setSoundEnabledState] = useState(true);
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabledState] = useState(true);
   const { logout } = useContext(AuthContext);
 
   useEffect(() => {
@@ -14,6 +15,9 @@ const Settings = () => {
       try {
         const storedSoundEnabled = JSON.parse(await AsyncStorage.getItem('soundEnabled'));
         setSoundEnabledState(storedSoundEnabled ?? true);
+
+        const storedVibrationEnabled = JSON.parse(await AsyncStorage.getItem('vibrationEnabled'));
+        setVibrationEnabledState(storedVibrationEnabled ?? true);
       } catch (error) {
         console.error('Error loading settings:', error);
       }
@@ -28,7 +32,11 @@ const Settings = () => {
     await setSoundEnabled(newValue);
   };
 
-  const toggleVibration = () => setVibrationEnabled(previousState => !previousState);
+  const toggleVibration = async () => {
+    const newValue = !vibrationEnabled;
+    setVibrationEnabledState(newValue);
+    await setVibrationEnabled(newValue);
+  };
 
   const handleLogout = async () => {
     try {
